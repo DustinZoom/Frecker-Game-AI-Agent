@@ -14,7 +14,6 @@ from .program import search
 
 SOLUTION_PREFIX = "$SOLUTION"
 
-
 def parse_input(input: str) -> dict[Coord, CellState]:
     """
     Parse input into the required data structures.

@@ -5,6 +5,7 @@ from .core import CellState, Coord, Direction, MoveAction, BOARD_N
 from .utils import render_board
 from collections import deque
 from copy import deepcopy
+from heapq import heappush, heappop
 
 
 def search(
@@ -47,9 +48,11 @@ def search(
         current_pos = red_frog
         temp_board = deepcopy(board)
         
+        '''
         print("\n" + "="*60)
         print("DETAILED SOLUTION ANALYSIS")
         print("="*60)
+        '''
         print(f"Starting position: {red_frog} (row {red_frog.r}, column {red_frog.c})")
         
         # Find final position by applying all moves
@@ -65,14 +68,15 @@ def search(
         # Trace through each move in the solution
         print("\nMOVE SEQUENCE:")
         for i, move in enumerate(solution):
+            '''
             print(f"\nMove {i+1}: {move}")
             print(f"  From: {current_pos} (row {current_pos.r}, column {current_pos.c})")
-            
+            '''
             # Apply the move to get the new position
             temp_board, current_pos = apply_move(temp_board, move)
-            
+            '''
             print(f"  To: {current_pos} (row {current_pos.r}, column {current_pos.c})")
-        
+            '''
         return solution
     
     print("NO SOLUTION FOUND")
@@ -125,7 +129,7 @@ def get_valid_moves(frog_pos: Coord, board: dict[Coord, CellState]) -> list[Move
             
         try:
             adjacent_pos = frog_pos + direction
-            
+
             # Check if adjacent cell is a lily pad for direct movement
             if adjacent_pos in board and board[adjacent_pos] == CellState.LILY_PAD:
                 valid_moves.append(MoveAction(frog_pos, [direction]))
@@ -133,7 +137,7 @@ def get_valid_moves(frog_pos: Coord, board: dict[Coord, CellState]) -> list[Move
             # Out of bounds
             continue
     
-    # Find jump sequences using a helper function
+    # Find the jump sequences for this move if we are jumping over frogs.
     find_jump_sequences(frog_pos, board, [], valid_moves)
     
     return valid_moves
@@ -156,7 +160,7 @@ def find_jump_sequences(current_pos: Coord, board: dict[Coord, CellState],
             # Position where we'll land after the jump
             landing_pos = jump_over_pos + direction
             
-            # Check if this is a valid jump:
+            # Check if this is a valid jump-over:
             # 1. The jump-over position must contain a frog (red or blue)
             # 2. The landing position must be a lily pad
             is_valid_jump = (
@@ -193,20 +197,24 @@ def apply_move(board: dict[Coord, CellState], move: MoveAction) -> tuple[dict[Co
     new_board = deepcopy(board)
     current_pos = move.coord
     
+    '''
     print(f"\n=== Applying move: {move} ===")
     print(f"Starting position: {current_pos} (row {current_pos.r}, column {current_pos.c})")
-    
+    '''
+
     # Remove the red frog from its starting position
     del new_board[current_pos]
     
     # Apply each direction in the sequence
     for i, direction in enumerate(move.directions):
+        '''
         print(f"\nStep {i+1}: Applying direction {direction}")
         print(f"  Current position before step: {current_pos} (row {current_pos.r}, column {current_pos.c})")
-        
+        '''
         adjacent_pos = current_pos + direction
+        '''
         print(f"  Adjacent position: {adjacent_pos} (row {adjacent_pos.r}, column {adjacent_pos.c})")
-        
+        '''
         # For the first step, use the original board to check conditions
         # For subsequent steps, use the updated board state
         reference_board = board if i == 0 else new_board
@@ -214,37 +222,119 @@ def apply_move(board: dict[Coord, CellState], move: MoveAction) -> tuple[dict[Co
         # Check what's at the adjacent position
         if adjacent_pos in reference_board:
             cell_state = reference_board[adjacent_pos]
+            '''
             print(f"  Cell at adjacent position contains: {cell_state}")
+            '''
         else:
+            '''
             print(f"  Cell at adjacent position is empty or out of bounds")
+            '''
         
         # Check if it's a direct move to an adjacent lily pad
         if adjacent_pos in reference_board and reference_board[adjacent_pos] == CellState.LILY_PAD:
+            '''
             print(f"  Direct move to lily pad")
+            '''
             current_pos = adjacent_pos
         # Otherwise, it's a jump over move
         else:
             try:
                 landing_pos = adjacent_pos + direction
+                '''
                 print(f"  Jump attempt. Landing position: {landing_pos} (row {landing_pos.r}, column {landing_pos.c})")
-                
-                if landing_pos in reference_board:
+                '''
+                if landing_pos in reference_board and reference_board[landing_pos] == CellState.LILY_PAD:
+                    '''
                     landing_cell = reference_board[landing_pos]
                     print(f"  Cell at landing position contains: {landing_cell}")
+                    '''
+                    current_pos = landing_pos
                 else:
+                    '''
                     print(f"  Cell at landing position is empty or out of bounds")
+                    '''
+                    raise ValueError("Invalid landing: must be a lily pad")
                 
                 current_pos = landing_pos
             except ValueError as e:
                 print(f"  ERROR: Invalid landing position: {e}")
-        
+        '''
         print(f"  Position after step {i+1}: {current_pos} (row {current_pos.r}, column {current_pos.c})")
+        '''
     
     # Place the red frog on the final position
     new_board[current_pos] = CellState.RED
     
+    '''
     print(f"\nFinal position after complete move: {current_pos} (row {current_pos.r}, column {current_pos.c})")
+    '''
+    
+    '''
     print("Board after move:")
     print(render_board(new_board, ansi=True))
-    
+    '''
+
     return new_board, current_pos
+
+'''
+Under construction: A* search algorithm to find the optimal path to the bottom row
+'''
+
+def manhattan_distance(pos: Coord) -> int:
+    """
+    Uses Manhattan distance as a heuristic function to bottom row, considering diagonal moves.
+    """
+    # Vertical distance to bottom row
+    vertical_distance = BOARD_N - 1 - pos.r
+    # Prefer central columns for better positioning
+    optimal_cols = [(BOARD_N - 1) // 2, BOARD_N // 2]
+    horizontal_offset = min(abs(pos.c - mid_col) for mid_col in optimal_cols)
+    
+    return max(vertical_distance, horizontal_offset)
+
+def A_find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) -> list[MoveAction] | None:
+    """
+    Find the optimal path from start position to the bottom row using A* search
+    """
+    visited = set()
+    # Priority queue entries: (f_score, g_score, pos, board, moves)
+    g_score = 0  # Cost from start
+    h_score = manhattan_distance(start_pos)  # Estimated cost to goal
+    f_score = g_score + h_score  # Total estimated cost
+    
+    # Initialize priority queue with starting state
+    queue = [(f_score, g_score, start_pos, start_board, [])]
+    
+    while queue:
+        f_score, g_score, pos, board, moves = heappop(queue)
+        
+        state_hash = board_state_hash(pos, board)
+        if state_hash in visited:
+            continue
+        
+        visited.add(state_hash)
+        
+        # Goal check: reached the bottom row
+        if pos.r == BOARD_N - 1:
+            return moves
+        
+        # Generate and explore valid moves
+        for move in get_valid_moves(pos, board):
+            corrected_move = MoveAction(pos, move.directions)
+            new_board, new_pos = apply_move(board, corrected_move)
+            
+            if board_state_hash(new_pos, new_board) not in visited:
+                new_g = g_score + 1  # Increment cost for each move
+                new_h = manhattan_distance(new_pos)
+                new_f = new_g + new_h
+                
+                heappush(queue, (
+                    new_f,
+                    new_g,
+                    new_pos,
+                    new_board,
+                    moves + [corrected_move]
+                ))
+    
+    # No path found
+    return None
