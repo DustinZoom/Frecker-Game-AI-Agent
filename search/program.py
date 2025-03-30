@@ -37,8 +37,8 @@ def search(
 
     print("《《SEARCHING》》")
     
-    # BFS to find a path to the goal
-    solution = find_solution_path(red_frog, board)
+    # A* search to find a path to the goal
+    solution = A_find_solution_path(red_frog, board)
     
     if solution:
         print(f"\n=== SOLUTION FOUND! ===")
@@ -297,16 +297,18 @@ def A_find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) 
     Find the optimal path from start position to the bottom row using A* search
     """
     visited = set()
-    # Priority queue entries: (f_score, g_score, pos, board, moves)
-    g_score = 0  # Cost from start
-    h_score = manhattan_distance(start_pos)  # Estimated cost to goal
-    f_score = g_score + h_score  # Total estimated cost
+    # Add a unique counter to break ties between states with equal f_scores
+    counter = 0
+    # Priority queue entries: (f_score, counter, g_score, pos, board, moves)
+    g_score = 0
+    h_score = manhattan_distance(start_pos)
+    f_score = g_score + h_score
     
     # Initialize priority queue with starting state
-    queue = [(f_score, g_score, start_pos, start_board, [])]
+    queue = [(f_score, counter, g_score, start_pos, start_board, [])]
     
     while queue:
-        f_score, g_score, pos, board, moves = heappop(queue)
+        f_score, _, g_score, pos, board, moves = heappop(queue)
         
         state_hash = board_state_hash(pos, board)
         if state_hash in visited:
@@ -324,17 +326,18 @@ def A_find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) 
             new_board, new_pos = apply_move(board, corrected_move)
             
             if board_state_hash(new_pos, new_board) not in visited:
-                new_g = g_score + 1  # Increment cost for each move
+                counter += 1
+                new_g = g_score + 1
                 new_h = manhattan_distance(new_pos)
                 new_f = new_g + new_h
                 
                 heappush(queue, (
                     new_f,
+                    counter,  # Add unique counter as secondary sort key
                     new_g,
                     new_pos,
                     new_board,
                     moves + [corrected_move]
                 ))
     
-    # No path found
     return None
