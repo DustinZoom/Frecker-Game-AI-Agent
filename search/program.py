@@ -8,6 +8,11 @@ from copy import deepcopy
 from heapq import heappush, heappop
 
 
+import time
+import tracemalloc 
+
+
+
 def search(
     board: dict[Coord, CellState]
 ) -> list[MoveAction] | None:
@@ -38,7 +43,42 @@ def search(
     print("《《SEARCHING》》")
     
     # A* search to find a path to the goal
+
+    # Start time measurement
+    start_time = time.time()
+    # Start memory tracking
+    tracemalloc.start()
+
+    solution = find_solution_path(red_frog, board)
+
+    # Get memory stats
+    current, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    # Calculate elapsed time
+    elapsed_time = time.time() - start_time
+    # Print profiling results
+    print(f"Time taken: {elapsed_time:.4f} seconds")
+    print(f"Peak memory usage: {peak / 1024 / 1024:.2f} MB")
+
+     # Start time measurement
+    start_time = time.time()
+    # Start memory tracking
+    tracemalloc.start()
     solution = A_find_solution_path(red_frog, board)
+
+     # Get memory stats
+    current, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+
+    # Calculate elapsed time
+    elapsed_time = time.time() - start_time
+
+    # Print profiling results
+    print(f"Time taken: {elapsed_time:.4f} seconds")
+    print(f"Peak memory usage: {peak / 1024 / 1024:.2f} MB")
+
+
+
     
     if solution:
         print(f"\n=== SOLUTION FOUND! ===")
@@ -80,19 +120,30 @@ def search(
         return solution
     
     print("NO SOLUTION FOUND")
+   
     return None
 
 
 def find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) -> list[MoveAction] | None:
     """Find the shortest path from start position to the bottom row using BFS."""
+    states_explored = 0
+    max_queue_size = 0
+
     visited = {board_state_hash(start_pos, start_board)}
     queue = deque([(start_pos, start_board, [])])
     
+    
+
     while queue:
         pos, board, moves = queue.popleft()
+
+        states_explored+=1
         
         # Goal check: reached the bottom row
         if pos.r == BOARD_N - 1:
+            print(f"BFS states explored: {states_explored}")
+            print(f"BFS maximum queue size: {max_queue_size}")
+
             return moves
         
         # Generate and explore valid moves
@@ -104,6 +155,8 @@ def find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) ->
             if state_hash not in visited:
                 visited.add(state_hash)
                 queue.append((new_pos, new_board, moves + [corrected_move]))
+
+                max_queue_size = max(max_queue_size, len(queue))
     
     # No path found
     return None
@@ -296,6 +349,12 @@ def A_find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) 
     """
     Find the optimal path from start position to the bottom row using A* search
     """
+    # profiling
+    states_explored = 0
+    max_queue_size = 0
+    
+
+
     visited = set()
     # Add a unique counter to break ties between states with equal f_scores
     counter = 0
@@ -310,6 +369,7 @@ def A_find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) 
     while queue:
         f_score, _, g_score, pos, board, moves = heappop(queue)
         
+        states_explored += 1 
         state_hash = board_state_hash(pos, board)
         if state_hash in visited:
             continue
@@ -318,6 +378,10 @@ def A_find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) 
         
         # Goal check: reached the bottom row
         if pos.r == BOARD_N - 1:
+            print(f"A* states explored: {states_explored}")
+            
+            print(f"A* maximum queue size: {max_queue_size}")
+
             return moves
         
         # Generate and explore valid moves
@@ -339,5 +403,6 @@ def A_find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) 
                     new_board,
                     moves + [corrected_move]
                 ))
+                max_queue_size = max(max_queue_size, len(queue))
     
     return None
