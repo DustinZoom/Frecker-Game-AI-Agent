@@ -171,6 +171,7 @@ def get_valid_moves(frog_pos: Coord, board: dict[Coord, CellState]) -> list[Move
     """
     Find all valid moves for the red frog in the current board state,
     including multiple jump sequences.
+    Used a DFS approach by recursively calling find_jump_sequences.
     """
     valid_moves = []
     
