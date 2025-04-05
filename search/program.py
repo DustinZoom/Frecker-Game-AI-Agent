@@ -49,7 +49,7 @@ def search(
     # Start memory tracking
     tracemalloc.start()
 
-    solution = find_solution_path(red_frog, board)
+    # solution = find_solution_path(red_frog, board)
 
     # Get memory stats
     current, peak = tracemalloc.get_traced_memory()
