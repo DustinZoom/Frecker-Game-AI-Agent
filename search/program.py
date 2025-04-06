@@ -340,8 +340,8 @@ def manhattan_distance(pos: Coord) -> int:
     """
     # Vertical distance to bottom row
     vertical_distance = BOARD_N - 1 - pos.r
-    # Prefer central columns for better positioning
-    optimal_cols = [(BOARD_N - 1) // 2, BOARD_N // 2]
+    # Prefer central columns for better positioning - less likely to be trapped on edges
+    optimal_cols = [BOARD_N // 2, (BOARD_N + 1) // 2]
     horizontal_offset = min(abs(pos.c - mid_col) for mid_col in optimal_cols)
     
     return max(vertical_distance, horizontal_offset)
@@ -354,8 +354,6 @@ def A_find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) 
     states_explored = 0
     max_queue_size = 0
     
-
-
     visited = set()
     # Add a unique counter to break ties between states with equal f_scores
     counter = 0
