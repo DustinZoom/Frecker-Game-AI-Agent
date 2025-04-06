@@ -344,7 +344,7 @@ def manhattan_distance(pos: Coord) -> int:
     optimal_cols = [BOARD_N // 2, (BOARD_N + 1) // 2]
     horizontal_offset = min(abs(pos.c - mid_col) for mid_col in optimal_cols)
     
-    return max(vertical_distance, horizontal_offset)
+    return min(vertical_distance, horizontal_offset)
 
 def A_find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) -> list[MoveAction] | None:
     """
