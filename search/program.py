@@ -40,8 +40,8 @@ def search(
     # BFS search to find a path to the goal
     solution = find_solution_path(red_frog, board)
 
-    #The following line uses A* instead of BFS, just in case grader needs testing it
-    #solution = A_find_solution_path(red_frog, board)
+    # The following line uses A* instead of BFS, just in case grader needs testing it
+    # solution = A_find_solution_path(red_frog, board)
 
     if solution:
         return solution
@@ -203,12 +203,14 @@ def apply_move(board: dict[Coord, CellState], move: MoveAction) -> tuple[dict[Co
     return new_board, current_pos
 
 '''
-Below is the unused A* search algorithm and h function
+Below is the attempted A* search algorithm and heuristic function.
+Was not adopted in the final search function due to difficulty defining a good heuristic,
+as it does not guarantee being admissible in all cases.
 '''
 
 def manhattan_distance(pos: Coord) -> int:
     """
-    Uses Manhattan distance as a heuristic function to bottom row, considering diagonal moves.
+    Uses modified a Manhattan distance as a heuristic function to bottom row, considering diagonal moves.
     """
     # Vertical distance to bottom row
     vertical_distance = BOARD_N - 1 - pos.r
@@ -260,7 +262,7 @@ def A_find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) 
                 
                 heappush(queue, (
                     new_f,
-                    counter,  # Add unique counter as secondary sort key
+                    counter,  # Unique counter to break ties
                     new_g,
                     new_pos,
                     new_board,
