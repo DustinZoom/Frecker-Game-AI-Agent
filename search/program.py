@@ -1,15 +1,19 @@
 # COMP30024 Artificial Intelligence, Semester 1 2025
 # Project Part A: Single Player Freckers
 
-# REFERENCES:
-# LLMs have been used to improve readability and formatting
-# We received some help from LLMs to generate the skeleton of the A* search algorithm to experiment
-# However we rejected A* as a valid solution and is not part of the formal submission
+'''
+REFERENCES:
+LLMs have been used to improve readability and formatting.
+We received some help from LLMs to generate the skeleton of the A* search algorithm to experiment.
+However we rejected A* as a valid solution and is not part of the formal submission.
+'''
 
-# DISCLAMER: 
-# Although we did not accept A* as the final solution, we leave it here to show our thought process.
-# It is also an inseparable component to our solution to Question 2 of the report.
-# Thus, the skeleton code is used in our experiments, and it can be run for testing purposes.
+'''
+DISCLAMER: 
+Although we did not accept A* as the final solution, we leave it here to show our thought process.
+It is also an inseparable component to our solution to Question 2 of the report.
+Thus, the skeleton code is used in our experiments, and it can be run for testing purposes.
+'''
 
 from .core import CellState, Coord, Direction, MoveAction, BOARD_N
 from .utils import render_board
@@ -116,7 +120,7 @@ def get_valid_moves(frog_pos: Coord, board: dict[Coord, CellState]) -> list[Move
             # Out of bounds
             continue
     
-    # Find the jump sequences for this move if we are jumping over frogs.
+    # Find the jump sequences for this move if we are jumping over frogs
     find_jump_sequences(frog_pos, board, [], valid_moves)
     
     return valid_moves
@@ -214,13 +218,13 @@ def apply_move(board: dict[Coord, CellState], move: MoveAction) -> tuple[dict[Co
 
 '''
 Below is the attempted A* search algorithm and heuristic function.
-Was not adopted in the final search function due to difficulty defining a good heuristic,
+Was not adopted as the final search function due to difficulty defining a good heuristic,
 as it does not guarantee being admissible in all cases.
 '''
 
 def manhattan_distance(pos: Coord) -> int:
     """
-    Uses modified a Manhattan distance as a heuristic function to bottom row
+    Uses modified a Manhattan distance as a heuristic function to bottom row.
     Also considers diagonal moves.
     """
     # Vertical distance to bottom row
@@ -233,7 +237,7 @@ def manhattan_distance(pos: Coord) -> int:
 
 def A_find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) -> list[MoveAction] | None:
     """
-    Find the optimal path from start position to the bottom row using A* search
+    Find the optimal path from start position to the bottom row using A* search.
     """
     
     visited = set()
