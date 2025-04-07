@@ -1,9 +1,15 @@
 # COMP30024 Artificial Intelligence, Semester 1 2025
 # Project Part A: Single Player Freckers
 
-# Reference:LLM has been used to improve readability and formatting
-# we used some helps from llm to generate a* search algorithm to play around
-# however a* is not part of the submission formally
+# REFERENCES:
+# LLMs have been used to improve readability and formatting
+# We received some help from LLMs to generate the skeleton of the A* search algorithm to experiment
+# However we rejected A* as a valid solution and is not part of the formal submission
+
+# DISCLAMER: 
+# Although we did not accept A* as the final solution, we leave it here to show our thought process.
+# It is also an inseparable component to our solution to Question 2 of the report.
+# Thus, the skeleton code is used in our experiments, and it can be run for testing purposes.
 
 from .core import CellState, Coord, Direction, MoveAction, BOARD_N
 from .utils import render_board
@@ -62,7 +68,7 @@ def find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) ->
     while queue:
         pos, board, moves = queue.popleft()
 
-        # Goal check: reached the bottom row
+        # Goal check: has the frog reached the bottom row
         if pos.r == BOARD_N - 1:
             return moves
         
@@ -90,7 +96,7 @@ def get_valid_moves(frog_pos: Coord, board: dict[Coord, CellState]) -> list[Move
     """
     Find all valid moves for the red frog in the current board state,
     including multiple jump sequences.
-    Used a DFS approach by recursively calling find_jump_sequences.
+    Used a DFS approach by recursively calling `find_jump_sequences`.
     """
     valid_moves = []
     
@@ -171,7 +177,7 @@ def apply_move(board: dict[Coord, CellState], move: MoveAction) -> tuple[dict[Co
     # Remove the red frog from its starting position
     del new_board[current_pos]
     
-    # Apply each direction in the sequence
+    # Apply each direction in the possible moves
     for i, direction in enumerate(move.directions):
        
         adjacent_pos = current_pos + direction
@@ -185,7 +191,7 @@ def apply_move(board: dict[Coord, CellState], move: MoveAction) -> tuple[dict[Co
 
             current_pos = adjacent_pos
 
-        # Otherwise, it's a jump over move
+        # Otherwise, it's a jump-over move
         else:
             try:
                 landing_pos = adjacent_pos + direction
@@ -214,11 +220,12 @@ as it does not guarantee being admissible in all cases.
 
 def manhattan_distance(pos: Coord) -> int:
     """
-    Uses modified a Manhattan distance as a heuristic function to bottom row, considering diagonal moves.
+    Uses modified a Manhattan distance as a heuristic function to bottom row
+    Also considers diagonal moves.
     """
     # Vertical distance to bottom row
     vertical_distance = BOARD_N - 1 - pos.r
-    # Prefer central columns for better positioning - less likely to be trapped on edges
+    # Prefer central columns for better positioning - frog less likely to be trapped on edges
     optimal_cols = [BOARD_N // 2, (BOARD_N + 1) // 2]
     horizontal_offset = min(abs(pos.c - mid_col) for mid_col in optimal_cols)
     
@@ -237,7 +244,7 @@ def A_find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) 
     h_score = manhattan_distance(start_pos)
     f_score = g_score + h_score
     
-    # Initialize priority queue with starting state
+    # Initialise the priority queue with starting states
     queue = [(f_score, counter, g_score, start_pos, start_board, [])]
     
     while queue:
@@ -249,7 +256,7 @@ def A_find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) 
         
         visited.add(state_hash)
         
-        # Goal check: reached the bottom row
+        # Goal check: if the red frog has reached the bottom row
         if pos.r == BOARD_N - 1:
             return moves
         
@@ -266,7 +273,7 @@ def A_find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) 
                 
                 heappush(queue, (
                     new_f,
-                    counter,  # Unique counter to break ties
+                    counter,  # Counter to break ties
                     new_g,
                     new_pos,
                     new_board,
