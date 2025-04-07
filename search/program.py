@@ -1,6 +1,10 @@
 # COMP30024 Artificial Intelligence, Semester 1 2025
 # Project Part A: Single Player Freckers
 
+# Reference:LLM has been used to improve readability and formatting
+# we used some helps from llm to generate a* search algorithm to play around
+# however a* is not part of the submission formally
+
 from .core import CellState, Coord, Direction, MoveAction, BOARD_N
 from .utils import render_board
 from collections import deque
