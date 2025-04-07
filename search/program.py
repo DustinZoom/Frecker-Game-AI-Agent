@@ -8,11 +8,6 @@ from copy import deepcopy
 from heapq import heappush, heappop
 
 
-import time
-import tracemalloc 
-
-
-
 def search(
     board: dict[Coord, CellState]
 ) -> list[MoveAction] | None:
@@ -42,121 +37,41 @@ def search(
 
     print("《《SEARCHING》》")
     
-    # A* search to find a path to the goal
+    # BFS search to find a path to the goal
+    solution = find_solution_path(red_frog, board)
 
-    # Start time measurement
-    start_time = time.time()
-    # Start memory tracking
-    tracemalloc.start()
+    #The following line uses A* instead of BFS, just in case grader needs testing it
+    #solution = A_find_solution_path(red_frog, board)
 
-    # solution = find_solution_path(red_frog, board)
-
-    # Get memory stats
-    current, peak = tracemalloc.get_traced_memory()
-    tracemalloc.stop()
-    # Calculate elapsed time
-    elapsed_time = time.time() - start_time
-    # Print profiling results
-    print(f"Time taken: {elapsed_time:.4f} seconds")
-    print(f"Peak memory usage: {peak / 1024 / 1024:.2f} MB")
-
-     # Start time measurement
-    start_time = time.time()
-    # Start memory tracking
-    tracemalloc.start()
-    solution = A_find_solution_path(red_frog, board)
-
-     # Get memory stats
-    current, peak = tracemalloc.get_traced_memory()
-    tracemalloc.stop()
-
-    # Calculate elapsed time
-    elapsed_time = time.time() - start_time
-
-    # Print profiling results
-    print(f"Time taken: {elapsed_time:.4f} seconds")
-    print(f"Peak memory usage: {peak / 1024 / 1024:.2f} MB")
-
-
-
-    
     if solution:
-        print(f"\n=== SOLUTION FOUND! ===")
-        print(f"Path length: {len(solution)} moves")
-        
-        # Print detailed solution analysis
-        current_pos = red_frog
-        temp_board = deepcopy(board)
-        
-        '''
-        print("\n" + "="*60)
-        print("DETAILED SOLUTION ANALYSIS")
-        print("="*60)
-        '''
-        print(f"Starting position: {red_frog} (row {red_frog.r}, column {red_frog.c})")
-        
-        # Find final position by applying all moves
-        final_board = deepcopy(board)
-        final_pos = red_frog
-        for move in solution:
-            final_board, final_pos = apply_move(final_board, move)
-            
-        print(f"Final position: {final_pos} (row {final_pos.r}, column {final_pos.c})")
-        print(f"Total moves: {len(solution)}")
-        print("-"*60)
-        
-        # Trace through each move in the solution
-        print("\nMOVE SEQUENCE:")
-        for i, move in enumerate(solution):
-            '''
-            print(f"\nMove {i+1}: {move}")
-            print(f"  From: {current_pos} (row {current_pos.r}, column {current_pos.c})")
-            '''
-            # Apply the move to get the new position
-            temp_board, current_pos = apply_move(temp_board, move)
-            '''
-            print(f"  To: {current_pos} (row {current_pos.r}, column {current_pos.c})")
-            '''
         return solution
     
     print("NO SOLUTION FOUND")
-   
     return None
 
-
 def find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) -> list[MoveAction] | None:
-    """Find the shortest path from start position to the bottom row using BFS."""
-    states_explored = 0
-    max_queue_size = 0
+    """Find the shortest path using BFS."""
 
     visited = {board_state_hash(start_pos, start_board)}
     queue = deque([(start_pos, start_board, [])])
     
-    
-
     while queue:
         pos, board, moves = queue.popleft()
 
-        states_explored+=1
-        
         # Goal check: reached the bottom row
         if pos.r == BOARD_N - 1:
-            print(f"BFS states explored: {states_explored}")
-            print(f"BFS maximum queue size: {max_queue_size}")
-
             return moves
         
         # Generate and explore valid moves
         for move in get_valid_moves(pos, board):
-            corrected_move = MoveAction(pos, move.directions)
-            new_board, new_pos = apply_move(board, corrected_move)
+            valid_move = MoveAction(pos, move.directions)
+            new_board, new_pos = apply_move(board, valid_move)
             
             state_hash = board_state_hash(new_pos, new_board)
             if state_hash not in visited:
                 visited.add(state_hash)
-                queue.append((new_pos, new_board, moves + [corrected_move]))
+                queue.append((new_pos, new_board, moves + [valid_move]))
 
-                max_queue_size = max(max_queue_size, len(queue))
     
     # No path found
     return None
@@ -215,8 +130,6 @@ def find_jump_sequences(current_pos: Coord, board: dict[Coord, CellState],
             landing_pos = jump_over_pos + direction
             
             # Check if this is a valid jump-over:
-            # 1. The jump-over position must contain a frog (red or blue)
-            # 2. The landing position must be a lily pad
             is_valid_jump = (
                 jump_over_pos in board and
                 (board[jump_over_pos] == CellState.RED or board[jump_over_pos] == CellState.BLUE) and
@@ -250,88 +163,47 @@ def apply_move(board: dict[Coord, CellState], move: MoveAction) -> tuple[dict[Co
     """
     new_board = deepcopy(board)
     current_pos = move.coord
-    
-    '''
-    print(f"\n=== Applying move: {move} ===")
-    print(f"Starting position: {current_pos} (row {current_pos.r}, column {current_pos.c})")
-    '''
 
     # Remove the red frog from its starting position
     del new_board[current_pos]
     
     # Apply each direction in the sequence
     for i, direction in enumerate(move.directions):
-        '''
-        print(f"\nStep {i+1}: Applying direction {direction}")
-        print(f"  Current position before step: {current_pos} (row {current_pos.r}, column {current_pos.c})")
-        '''
+       
         adjacent_pos = current_pos + direction
-        '''
-        print(f"  Adjacent position: {adjacent_pos} (row {adjacent_pos.r}, column {adjacent_pos.c})")
-        '''
+        
         # For the first step, use the original board to check conditions
         # For subsequent steps, use the updated board state
         reference_board = board if i == 0 else new_board
         
-        # Check what's at the adjacent position
-        if adjacent_pos in reference_board:
-            cell_state = reference_board[adjacent_pos]
-            '''
-            print(f"  Cell at adjacent position contains: {cell_state}")
-            '''
-        else:
-            '''
-            print(f"  Cell at adjacent position is empty or out of bounds")
-            '''
-        
         # Check if it's a direct move to an adjacent lily pad
         if adjacent_pos in reference_board and reference_board[adjacent_pos] == CellState.LILY_PAD:
-            '''
-            print(f"  Direct move to lily pad")
-            '''
+
             current_pos = adjacent_pos
+
         # Otherwise, it's a jump over move
         else:
             try:
                 landing_pos = adjacent_pos + direction
-                '''
-                print(f"  Jump attempt. Landing position: {landing_pos} (row {landing_pos.r}, column {landing_pos.c})")
-                '''
+              
                 if landing_pos in reference_board and reference_board[landing_pos] == CellState.LILY_PAD:
-                    '''
-                    landing_cell = reference_board[landing_pos]
-                    print(f"  Cell at landing position contains: {landing_cell}")
-                    '''
+                  
                     current_pos = landing_pos
                 else:
-                    '''
-                    print(f"  Cell at landing position is empty or out of bounds")
-                    '''
+            
                     raise ValueError("Invalid landing: must be a lily pad")
                 
                 current_pos = landing_pos
             except ValueError as e:
                 print(f"  ERROR: Invalid landing position: {e}")
-        '''
-        print(f"  Position after step {i+1}: {current_pos} (row {current_pos.r}, column {current_pos.c})")
-        '''
-    
+     
     # Place the red frog on the final position
     new_board[current_pos] = CellState.RED
     
-    '''
-    print(f"\nFinal position after complete move: {current_pos} (row {current_pos.r}, column {current_pos.c})")
-    '''
-    
-    '''
-    print("Board after move:")
-    print(render_board(new_board, ansi=True))
-    '''
-
     return new_board, current_pos
 
 '''
-Under construction: A* search algorithm to find the optimal path to the bottom row
+Below is the unused A* search algorithm and h function
 '''
 
 def manhattan_distance(pos: Coord) -> int:
@@ -350,9 +222,6 @@ def A_find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) 
     """
     Find the optimal path from start position to the bottom row using A* search
     """
-    # profiling
-    states_explored = 0
-    max_queue_size = 0
     
     visited = set()
     # Add a unique counter to break ties between states with equal f_scores
@@ -368,7 +237,6 @@ def A_find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) 
     while queue:
         f_score, _, g_score, pos, board, moves = heappop(queue)
         
-        states_explored += 1 
         state_hash = board_state_hash(pos, board)
         if state_hash in visited:
             continue
@@ -377,16 +245,12 @@ def A_find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) 
         
         # Goal check: reached the bottom row
         if pos.r == BOARD_N - 1:
-            print(f"A* states explored: {states_explored}")
-            
-            print(f"A* maximum queue size: {max_queue_size}")
-
             return moves
         
         # Generate and explore valid moves
         for move in get_valid_moves(pos, board):
-            corrected_move = MoveAction(pos, move.directions)
-            new_board, new_pos = apply_move(board, corrected_move)
+            valid_move = MoveAction(pos, move.directions)
+            new_board, new_pos = apply_move(board, valid_move)
             
             if board_state_hash(new_pos, new_board) not in visited:
                 counter += 1
@@ -400,8 +264,7 @@ def A_find_solution_path(start_pos: Coord, start_board: dict[Coord, CellState]) 
                     new_g,
                     new_pos,
                     new_board,
-                    moves + [corrected_move]
+                    moves + [valid_move]
                 ))
-                max_queue_size = max(max_queue_size, len(queue))
-    
+        
     return None
