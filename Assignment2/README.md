@@ -6,7 +6,7 @@ In this project, we aim to develop an agent to play the full two-player version 
 Usage
 -----
 1. Make sure the referee module and the agent module are under the same (current) working directory.
-2. Then cd into Assignment2.
+2. Then `cd` into Assignment2.
 3. Run the referee (**don't edit the referee file!**): 
     - `python -m referee agent agent`
     - `python -m referee <red module> <blue module>`
