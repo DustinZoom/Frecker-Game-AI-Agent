@@ -41,6 +41,27 @@ It is responsible for packaging up the "agent" code and run it in a safe subproc
 4. `resources.py` 
     - Houses static data and helper functions for the agent.
 
+The game package
+----------------
+1. `constants.py` holds the magic numbers and enums.
+2. `coord.py` defines the `Coord` and `Direction` classes. Same as in Part A.
+3. `board.py` implements the `Board` class with numerous helper functions.
+    1. Keeps track of which spaces are occupied and by whom
+    2. Knows how to apply or undo moves
+     -`CellState` - same as in project 1
+     - `CellMutation` - represents the change in the state of a cell after an action is played
+     - `BoardMutation` - similar to `CellMutation`, but on a board
+4. `actions.py`
+    - Data classes of `MoveAction()` and `GrowAction()`
+5. `exceptions.py` holds exception classes to catch errors
+6. `player.py` holds the player colour identifier, and an abstract base class for a player used internally by the referee as an interface to an agent or human player.
+
+
+The server package
+------------------
+
+
+
 File Structure
 --------------
 - ./               Core referee logic
