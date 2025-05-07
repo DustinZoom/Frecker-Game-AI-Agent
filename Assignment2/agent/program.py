@@ -119,8 +119,16 @@ class Agent:
         player_coords = [coord for coord, state in self._board.items() if state == self._color]
         legal_directions = self._get_legal_directions(self._color)
         
-        # Check for regular moves to adjacent lily pads
+        # Filter out frogs that are already in their destination row
+        active_frogs = []
         for coord in player_coords:
+            # For RED, destination row is 7; for BLUE, destination row is 0
+            if (self._color == PlayerColor.RED and coord.r < 7) or \
+            (self._color == PlayerColor.BLUE and coord.r > 0):
+                active_frogs.append(coord)
+
+        # Check for regular moves to adjacent lily pads
+        for coord in active_frogs:
             for direction in legal_directions:
                 try:
                     dest = coord + direction
@@ -140,7 +148,7 @@ class Agent:
                     pass
         
         # Find valid jump moves
-        for coord in player_coords:
+        for coord in active_frogs:
             temp_jumps = self._get_jump_moves(coord)
             jump_moves.extend(temp_jumps)
         
