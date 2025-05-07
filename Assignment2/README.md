@@ -3,6 +3,16 @@ COMP30024 Project Part B
 
 In this project, we aim to develop an agent to play the full two-player version of Freckers.
 
+Referee terminal command line:
+    python -m referee agent agent
+more information during gameplay
+    python -m referee -v 3 agent agent
+set a delay between moves to better visualize what's happening:
+    python -m referee -w 0.5 agent agent
+    python -m referee -w 1.5 agent agent
+combine these flags:
+    python -m referee -v 3 -w 0.5 agent agent
+    
 Usage
 -----
 1. Make sure the referee module and the agent module are under the same (current) working directory.
