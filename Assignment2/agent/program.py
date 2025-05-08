@@ -43,6 +43,8 @@ class Agent:
 
     def action(self, **referee: dict) -> Action:
         """Choose an action based on jumps > forward > sideways > grow."""
+
+        # Currently it is selecting random moves
         jump_moves, forward_moves, sideways_moves = self._get_categorized_moves()
         
         if jump_moves:
@@ -56,6 +58,7 @@ class Agent:
 
     def update(self, color: PlayerColor, action: Action, **referee: dict):
         """Update the internal board state based on the action played."""
+        # If the action is a move action
         if isinstance(action, MoveAction):
             source = action.coord
             
@@ -85,9 +88,10 @@ class Agent:
                     except ValueError:
                         break
                 
-                self._board[source] = None
-                self._board[curr_pos] = color
+                self._board[source] = None # Removes the frog from the source position
+                self._board[curr_pos] = color # Moves the frog to the landing position
         
+        # If the action is a grow action
         elif isinstance(action, GrowAction):
             # Generate lily pads around all frogs of the current player
             player_coords = [coord for coord, state in self._board.items() if state == color]
@@ -119,7 +123,7 @@ class Agent:
         player_coords = [coord for coord, state in self._board.items() if state == self._color]
         legal_directions = self._get_legal_directions(self._color)
         
-        # Filter out frogs that are already in their destination row
+        # Select frogs that are not in their destination row
         active_frogs = []
         for coord in player_coords:
             # For RED, destination row is 7; for BLUE, destination row is 0
@@ -147,7 +151,7 @@ class Agent:
                 except ValueError:
                     pass
         
-        # Find valid jump moves
+        # Find valid jump-over moves
         for coord in active_frogs:
             temp_jumps = self._get_jump_moves(coord)
             jump_moves.extend(temp_jumps)
