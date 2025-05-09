@@ -56,7 +56,7 @@ class Agent:
         start_time = time.time()
         
         # Dynamically adjust search depth based on time remaining
-        estimated_moves_left = max(10, 150 - self._move_count)
+        estimated_moves_left = max(10, 80 - self._move_count)
         time_per_move = self._time_remaining / estimated_moves_left
         
         # Set search depth based on available time
@@ -73,7 +73,7 @@ class Agent:
         all_moves = self._get_moves(self._board, self._color)
         
         # Set a time budget for this move
-        time_budget = min(time_per_move * 0.2, 2.0)
+        time_budget = min(time_per_move * 0.5, 3.0)
         
         # Apply minimax with alpha-beta pruning
         best_move = None
@@ -341,7 +341,7 @@ class Agent:
                     pass
         
         # Return all moves in strategic priority order (jumps first, then forward, then grow, then sideways)
-        return jump_moves + forward_moves + [grow_move] + sideways_moves
+        return jump_moves + forward_moves  + sideways_moves + [grow_move]
 
     def _find_jumps_recursive(self, board, start_pos, current_pos, directions, result, visited, color=None):
         """Find all valid jump sequences recursively."""

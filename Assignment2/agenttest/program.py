@@ -3,10 +3,7 @@
 
 from referee.game import PlayerColor, Coord, Direction, \
     Action, MoveAction, GrowAction
-import random
 import time
-from copy import deepcopy
-
 
 class Agent:
     """
@@ -344,7 +341,7 @@ class Agent:
                     pass
         
         # Return all moves in strategic priority order (jumps first, then forward, then grow, then sideways)
-        return jump_moves + forward_moves + [grow_move] + sideways_moves
+        return jump_moves + forward_moves + [grow_move] + sideways_moves 
 
     def _find_jumps_recursive(self, board, start_pos, current_pos, directions, result, visited, color=None):
         """Find all valid jump sequences recursively."""

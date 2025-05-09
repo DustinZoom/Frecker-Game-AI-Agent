@@ -6,13 +6,15 @@ In this project, we aim to develop an agent to play the full two-player version 
 Referee terminal command line:
 
 python -m referee agent agent
+
 python -m referee agent agent_naive
 
 python -m referee agent agenttest
+
 python -m referee agenttest agent 
 
 python -m referee agenttest agent_naive 
-python -m referee agent_naive agent
+
 
 
 more information during gameplay
