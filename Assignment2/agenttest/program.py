@@ -3,7 +3,10 @@
 
 from referee.game import PlayerColor, Coord, Direction, \
     Action, MoveAction, GrowAction
+import random
 import time
+from copy import deepcopy
+
 
 class Agent:
     """

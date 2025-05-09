@@ -42,20 +42,29 @@ class Agent:
             self._board[Coord(7, c)] = PlayerColor.BLUE
 
     def action(self, **referee: dict) -> Action:
-        """Choose an action based on jumps > forward > sideways > grow."""
+        """Choose an action based on jumps > forward > sideways/grow."""
 
-        # Currently it is selecting random moves
+        # Get all possible moves categorized
         jump_moves, forward_moves, sideways_moves = self._get_categorized_moves()
         
+        # Prioritize jumps and forward moves
         if jump_moves:
             return random.choice(jump_moves)
         elif forward_moves:
             return random.choice(forward_moves)
-        elif sideways_moves:
-            return random.choice(sideways_moves)
         else:
-            return GrowAction()
-
+            # When only sideways moves or no moves are available
+            # Choose randomly between GROW and sideways moves
+            grow_action = GrowAction()
+            
+            if not sideways_moves:
+                # No sideways moves available - must use GROW
+                return grow_action
+            
+            # Both sideways moves and GROW are options - choose randomly
+            all_options = sideways_moves + [grow_action]
+            return random.choice(all_options)
+            
     def update(self, color: PlayerColor, action: Action, **referee: dict):
         """Update the internal board state based on the action played."""
         # If the action is a move action
