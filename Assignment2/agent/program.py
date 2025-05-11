@@ -49,70 +49,116 @@ class Agent:
             self._board[Coord(7, c)] = PlayerColor.BLUE
 
     def action(self, **referee: dict) -> Action:
-        """Choose an action using minimax with alpha-beta pruning."""
-        # Update time remaining and move count
+        """Choose an action using iterative deepening search."""
+        # Update time management
         self._time_remaining = referee.get("time_remaining", self._time_remaining)
         self._move_count += 1
+        self._positions_evaluated = 0
         
         # Start timing this move
         start_time = time.time()
         
-        # Dynamically adjust search depth based on time remaining
+        # Dynamic time management - Much more aggressive
         estimated_moves_left = max(10, 80 - self._move_count)
         time_per_move = self._time_remaining / estimated_moves_left
         
-        # Set search depth based on available time
-        if time_per_move < 0.5:
-            self._max_depth = 1
-        elif time_per_move < 1.0:
-            self._max_depth = 2
-        elif time_per_move < 3.0:
-            self._max_depth = 3
+        # Use more time per move, especially in midgame
+        if 10 <= self._move_count <= 40:
+            time_budget = min(time_per_move * 0.9, 10.0)  # Much more time in midgame
         else:
-            self._max_depth = 5
-
+            time_budget = min(time_per_move * 0.7, 5.0)  # More time in early/late game
+        
         # Get all moves in strategic priority order
         all_moves = self._get_moves(self._board, self._color)
         
-        # Set a time budget for this move
-        time_budget = min(time_per_move * 0.5, 3.0)
-        
-        # Apply minimax with alpha-beta pruning
-        best_move = None
+        # Default to first available move in case we time out immediately
+        best_move = all_moves[0] if all_moves else None
         best_score = float('-inf')
-        alpha = float('-inf')
-        beta = float('inf')
+        max_depth_reached = 0
         
-        for move in all_moves:
-            # Stop if we're approaching our time budget
-            if time.time() - start_time > time_budget * 0.8:
+        # Move ordering table - will be updated after each depth
+        move_values = {move: 0 for move in all_moves}
+        
+        # Iterative deepening loop - try to go deeper
+        for current_depth in range(1, 15):  # Extend max depth even further
+            # Actual elapsed time
+            elapsed = time.time() - start_time
+            
+            # Stop if we've used most of our time budget
+            if elapsed > time_budget * 0.8:
                 break
-                
-            # Apply the move
-            new_board = self._apply_move(self._board, move, self._color)
             
-            # Evaluate with minimax
-            score = self._minimax(new_board, self._max_depth - 1, alpha, beta, False, start_time, time_budget)
+            # Sort moves based on previous iteration results
+            all_moves.sort(key=lambda m: move_values.get(m, 0), reverse=True)
             
-            # Update best move if better
-            if score > best_score:
-                best_score = score
-                best_move = move
+            depth_best_move = None
+            depth_best_score = float('-inf')
+            depth_completed = True  # Flag to track if we completed this depth
+            
+            # Set alpha/beta for this depth
+            depth_alpha = float('-inf')
+            depth_beta = float('inf')
+            
+            # Search all moves at this depth
+            for move_idx, move in enumerate(all_moves):
+                # Time remaining for this depth
+                remaining_ratio = (len(all_moves) - move_idx) / len(all_moves)
+                move_time_limit = time_budget * 0.9 - elapsed  # How much time left
                 
-            # Update alpha for pruning
-            alpha = max(alpha, best_score)
+                # Allocate more time for higher depths
+                if current_depth >= 3:
+                    move_time_limit *= 1.2  # Give 20% more time for depth 3+
+                
+                # Apply the move
+                new_board = self._apply_move(self._board, move, self._color)
+                
+                # Use alpha-beta pruning with tighter time budget for this move
+                score = self._minimax(new_board, current_depth - 1, depth_alpha, depth_beta, False, 
+                                    start_time, time_budget * 0.95)  # Use 95% of time budget
+                
+                # Update move ordering table
+                move_values[move] = score
+                
+                # Update best move
+                if score > depth_best_score:
+                    depth_best_score = score
+                    depth_best_move = move
+                
+                # Check time after each move evaluation
+                elapsed = time.time() - start_time
+                if elapsed > time_budget * 0.8:
+                    depth_completed = False
+                    break
+                
+                # Update alpha for pruning
+                depth_alpha = max(depth_alpha, score)
+            
+            # Only update best move if we completed the depth
+            if depth_completed and depth_best_move is not None:
+                best_move = depth_best_move
+                best_score = depth_best_score
+                max_depth_reached = current_depth
+                
+                # Print debug info
+                elapsed = time.time() - start_time
+                print(f"Depth {current_depth} COMPLETE in {elapsed:.3f}s, best: {best_score:.1f}, move: {best_move}")
+            else:
+                elapsed = time.time() - start_time
+                print(f"Depth {current_depth} PARTIAL in {elapsed:.3f}s, best from prev: {best_score:.1f}")
+                break  # Stop iterating if we couldn't complete a depth
+            
+            # Early success check - if found winning move
+            if best_score > 9000:
+                print(f"Found winning move at depth {current_depth}! Score: {best_score:.1f}")
+                break
         
-        # Default to first available move if none found
-        if best_move is None:
-            best_move = all_moves[0]
-        
-         
+        # Report final statistics
         total_time = time.time() - start_time
         print(f"TURN {self._move_count}: {self._color} chose {best_move}")
-        print(f"TIME: {total_time:.3f}s / {self._time_remaining:.1f}s remaining, DEPTH: {self._max_depth}")
-        print(f"SCORE: {best_score:.1f}, MOVES CONSIDERED: {len(all_moves)}")
-        print(f"SCORE: {best_score:.1f}, POSITIONS EVALUATED: {self._positions_evaluated}, NODS/SEC: {self._positions_evaluated/total_time:.1f}")
-
+        print(f"TIME: {total_time:.3f}s / {self._time_remaining:.1f}s remaining, MAX DEPTH: {max_depth_reached}")
+        print(f"SCORE: {best_score:.1f}, POSITIONS EVALUATED: {self._positions_evaluated}")
+        print(f"POSITIONS/SECOND: {self._positions_evaluated/max(total_time, 0.001):.1f}")
+        
         return best_move
 
     def update(self, color: PlayerColor, action: Action, **referee: dict):
