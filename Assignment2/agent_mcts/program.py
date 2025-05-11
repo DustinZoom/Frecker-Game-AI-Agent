@@ -21,8 +21,8 @@ class Agent:
         self._init_board()
         
         # MCTS parameters
-        self._max_iterations = 1000
-        self._exploration_constant = math.sqrt(2)
+        self._max_iterations = 200  # Set to 200 for experimentation
+        self._exploration_constant = math.sqrt(2)  # Set to sqrt(2) for experimentation
     
     def _init_board(self):
         """Initialize the board to the starting state."""
@@ -268,6 +268,8 @@ class Agent:
         """Calculate UCB1 value for a node."""
         if node.visits == 0:
             return float('inf')  # Always explore unvisited nodes first
+        if node.parent.visits == 0:
+            return float("inf")
         return (node.reward / node.visits) + self._exploration_constant * math.sqrt(math.log(node.parent.visits) / node.visits)
 
     def _expansion(self, node):
@@ -293,20 +295,31 @@ class Agent:
         return child
 
     def _simulation(self, node):
-        """Simulate a random game from the current state."""
+        """Simulate a game from the current state using quiescence and minimax hybrid for MCTS playouts."""
         board = dict(node.state)
         current_color = self._color  # Start with the current player's color
         
-        while not self._is_game_over(board):
-            # Get all legal actions
+        # If we're at a terminal state, evaluate it
+        if self._is_game_over(board):
+            return self._evaluate_board(board)
+        
+        # Simulate up to 10 moves ahead or until game ends
+        for _ in range(10):
             jump_moves, forward_moves, sideways_moves = self._get_categorized_moves_for_board(board, current_color)
-            all_moves = jump_moves + forward_moves + sideways_moves + [GrowAction()]
-            
-            if not all_moves:
-                break
-                
-            # Choose a random action
-            action = random.choice(all_moves)
+            if jump_moves:
+                max_len = max(len(j.directions) for j in jump_moves)
+                best_jumps = [j for j in jump_moves if len(j.directions) == max_len]
+                action = random.choice(best_jumps)
+            elif forward_moves:
+                if current_color == PlayerColor.RED:
+                    best_forward = max(forward_moves, key=lambda m: m.coord.r)
+                else:
+                    best_forward = min(forward_moves, key=lambda m: m.coord.r)
+                action = best_forward
+            elif sideways_moves:
+                action = random.choice(sideways_moves)
+            else:
+                action = GrowAction()
             
             # Apply the action
             if isinstance(action, MoveAction):
@@ -317,17 +330,34 @@ class Agent:
                     board[final_pos] = current_color
             elif isinstance(action, GrowAction):
                 self._apply_grow(board, current_color)
-                
+            
             # Switch player
             current_color = current_color.opponent
+            
+            # Check if game is over
+            if self._is_game_over(board):
+                break
         
-        # Return the result (1 for win, 0 for loss, 0.5 for draw)
-        if self._is_game_over(board):
-            if current_color == self._color:
-                return 0  # Current player lost
-            else:
-                return 1  # Current player won
-        return 0.5  # Draw
+        # Quiescence: keep playing jump moves until none are left
+        while True:
+            jump_moves, _, _ = self._get_categorized_moves_for_board(board, current_color)
+            if not jump_moves:
+                break
+            max_len = max(len(j.directions) for j in jump_moves)
+            best_jumps = [j for j in jump_moves if len(j.directions) == max_len]
+            action = random.choice(best_jumps)
+            # Apply the jump
+            source = action.coord
+            board[source] = None
+            final_pos = self._get_final_position(source, action.directions, board)
+            if final_pos:
+                board[final_pos] = current_color
+            current_color = current_color.opponent
+            if self._is_game_over(board):
+                break
+        
+        # Use shallow minimax (depth 2) to evaluate the final position
+        return self._minimax(board, 2, True, current_color)
 
     def _backpropagation(self, node, result):
         """Backpropagate the result up the tree."""
@@ -350,6 +380,8 @@ class Agent:
                 
                 # Validate final position
                 if self._is_valid_coord(dest):
+                    if board.get(dest) != "LilyPad":
+                        return None
                     return dest
             except ValueError:
                 return None
@@ -513,6 +545,82 @@ class Agent:
                 
             except ValueError:
                 continue
+
+    def _evaluate_board(self, board):
+        """Evaluate board state from agent's perspective with stronger progression reward and penalty for lingering in the starting row."""
+        # Count frogs in destination rows
+        red_in_bottom = sum(1 for c in range(8) if board.get(Coord(7, c)) == PlayerColor.RED)
+        blue_in_top = sum(1 for c in range(8) if board.get(Coord(0, c)) == PlayerColor.BLUE)
+        
+        # Base scores
+        red_score = red_in_bottom * 100
+        blue_score = blue_in_top * 100
+           
+        # Add progression points and penalize lingering in starting row
+        for r in range(8):
+            for c in range(8):
+                coord = Coord(r, c)
+                if board.get(coord) == PlayerColor.RED:
+                    # For RED, higher rows are better
+                    red_score += r * 20  # Stronger progression reward
+                    if r == 0:
+                        red_score -= 40  # Penalty for lingering in starting row
+                    if 2 <= c <= 5:
+                        red_score += 5
+                elif board.get(coord) == PlayerColor.BLUE:
+                    # For BLUE, lower rows are better
+                    blue_score += (7 - r) * 20  # Stronger progression reward
+                    if r == 7:
+                        blue_score -= 40  # Penalty for lingering in starting row
+                    if 2 <= c <= 5:
+                        blue_score += 5
+        
+        # Return score from agent's perspective
+        score = red_score - blue_score if self._color == PlayerColor.RED else blue_score - red_score
+        
+        # Normalize score to [0, 1] range for MCTS
+        return (score + 1000) / 2000  # Assuming max score is around 1000
+
+    def _minimax(self, board, depth, maximizing_player, color):
+        """Shallow minimax for hybrid MCTS playouts."""
+        if depth == 0 or self._is_game_over(board):
+            return self._evaluate_board(board)
+        
+        jump_moves, forward_moves, sideways_moves = self._get_categorized_moves_for_board(board, color)
+        all_moves = jump_moves + forward_moves + sideways_moves
+        if not all_moves:
+            return self._evaluate_board(board)
+        
+        if maximizing_player:
+            best_value = float('-inf')
+            for move in all_moves:
+                new_board = dict(board)
+                if isinstance(move, MoveAction):
+                    source = move.coord
+                    new_board[source] = None
+                    final_pos = self._get_final_position(source, move.directions, new_board)
+                    if final_pos:
+                        new_board[final_pos] = color
+                elif isinstance(move, GrowAction):
+                    self._apply_grow(new_board, color)
+                value = self._minimax(new_board, depth-1, False, color.opponent)
+                best_value = max(best_value, value)
+            return best_value
+        else:
+            best_value = float('inf')
+            for move in all_moves:
+                new_board = dict(board)
+                if isinstance(move, MoveAction):
+                    source = move.coord
+                    new_board[source] = None
+                    final_pos = self._get_final_position(source, move.directions, new_board)
+                    if final_pos:
+                        new_board[final_pos] = color
+                elif isinstance(move, GrowAction):
+                    self._apply_grow(new_board, color)
+                value = self._minimax(new_board, depth-1, True, color.opponent)
+                best_value = min(best_value, value)
+            return best_value
 
 class MCTSNode:
     def __init__(self, state, parent=None, action=None, color=None):
