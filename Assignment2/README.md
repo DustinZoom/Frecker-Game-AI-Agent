@@ -11,6 +11,10 @@ python -m referee agent agent_naive
 
 python -m referee agent agenttest
 
+python -m referee agent agent_mcts
+
+python -m referee agent_mcts agent
+
 python -m referee agenttest agent 
 
 python -m referee agenttest agent_naive 
