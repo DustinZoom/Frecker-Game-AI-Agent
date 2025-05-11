@@ -10,8 +10,10 @@ python simple_tournament.py agent_mcts agent 3
 Referee terminal command line:
 python -m referee agent agent
 python -m referee agent agentminiv1
+python -m referee agentminiv1 agent
 python -m referee agent agent_naive
 python -m referee agent agenttest
+python -m referee agenttest agent 
 python -m referee agenttest agenttest
 
 python -m referee agenttest agent_naive 
