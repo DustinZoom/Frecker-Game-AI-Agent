@@ -23,6 +23,8 @@ class Agent:
         self._max_depth = 3
         self._move_count = 0
         
+         # Position counter - benchmarking only, delete when submit
+        self._positions_evaluated = 0
     def _init_board(self):
         """Initialize the board to the starting state."""
         # Initialize all positions to empty
@@ -67,7 +69,7 @@ class Agent:
         elif time_per_move < 3.0:
             self._max_depth = 3
         else:
-            self._max_depth = 4
+            self._max_depth = 5
 
         # Get all moves in strategic priority order
         all_moves = self._get_moves(self._board, self._color)
@@ -105,10 +107,12 @@ class Agent:
             best_move = all_moves[0]
         
          
-        # total_time = time.time() - start_time
-        # print(f"TURN {self._move_count}: {self._color} chose {best_move}")
-        # print(f"TIME: {total_time:.3f}s / {self._time_remaining:.1f}s remaining, DEPTH: {self._max_depth}")
-        # print(f"SCORE: {best_score:.1f}, MOVES CONSIDERED: {len(all_moves)}")
+        total_time = time.time() - start_time
+        print(f"TURN {self._move_count}: {self._color} chose {best_move}")
+        print(f"TIME: {total_time:.3f}s / {self._time_remaining:.1f}s remaining, DEPTH: {self._max_depth}")
+        print(f"SCORE: {best_score:.1f}, MOVES CONSIDERED: {len(all_moves)}")
+        print(f"SCORE: {best_score:.1f}, POSITIONS EVALUATED: {self._positions_evaluated}, NODS/SEC: {self._positions_evaluated/total_time:.1f}")
+
         return best_move
 
     def update(self, color: PlayerColor, action: Action, **referee: dict):
@@ -130,6 +134,8 @@ class Agent:
 
     def _minimax(self, board, depth, alpha, beta, is_maximizing, start_time, time_budget):
         """Minimax algorithm with alpha-beta pruning and time check."""
+        # Increment the position counter
+        self._positions_evaluated += 1
         # Check if we're running out of time
         if time.time() - start_time > time_budget * 0.9:
             return self._evaluate_board(board)
@@ -207,7 +213,7 @@ class Agent:
         # Base scores
         red_score = red_in_bottom * 100
         blue_score = blue_in_top * 100
-        
+           
         # Add progression points
         for r in range(8):
             for c in range(8):
@@ -339,9 +345,20 @@ class Agent:
                             sideways_moves.append(move)
                 except ValueError:
                     pass
+        #  Sort jump moves by length (longer jumps first)
+        jump_moves.sort(key=lambda move: len(move.directions), reverse=True)
         
-        # Return all moves in strategic priority order (jumps first, then forward, then grow, then sideways)
-        return jump_moves + forward_moves  + sideways_moves + [grow_move]
+        # Sort forward moves by how far they advance
+        forward_moves.sort(key=lambda move: 
+            move.coord.r if color == PlayerColor.RED else 7 - move.coord.r, 
+            reverse=False)  # Moves from back rank first
+        
+        # Prioritize GROW earlier in the game, later in midgame
+        if self._move_count < 19:  # Early game
+            return jump_moves + [grow_move] + forward_moves + sideways_moves
+        else:  # Mid/late game
+            return jump_moves + forward_moves +  sideways_moves +[grow_move]
+     
 
     def _find_jumps_recursive(self, board, start_pos, current_pos, directions, result, visited, color=None):
         """Find all valid jump sequences recursively."""
