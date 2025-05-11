@@ -141,8 +141,12 @@ class Agent:
             return self._evaluate_board(board)
             
         # Terminal conditions
-        if depth == 0 or self._is_game_over(board):
+        if self._is_game_over(board):
             return self._evaluate_board(board)
+        
+        # If depth is exhausted, use quiescence search
+        if depth <= 0:
+            return self._quiescence_search(board, alpha, beta, is_maximizing, start_time, time_budget, 0)
         
         # Current player
         current_color = self._color if is_maximizing else self._color.opponent
@@ -417,3 +421,123 @@ class Agent:
     def _is_valid_coord(self, coord):
         """Check if a coordinate is within board bounds."""
         return 0 <= coord.r < 8 and 0 <= coord.c < 8
+    
+
+
+    def _quiescence_search(self, board, alpha, beta, is_maximizing, start_time, time_budget, q_depth):
+        """
+        Quiescence search to evaluate tactically unstable positions.
+        Only considers jumps and destination-reaching moves.
+        """
+        # Increment position counter
+        self._positions_evaluated += 1
+        
+        # Check time limits
+        if time.time() - start_time > time_budget * 0.9:
+            return self._evaluate_board(board)
+        
+        # Get stand-pat score (evaluation without further search)
+        stand_pat = self._evaluate_board(board)
+        
+        # Terminal conditions and depth limit for quiescence
+        if self._is_game_over(board) or q_depth >= 5:  # Limit quiescence depth
+            return stand_pat
+        
+        # Update alpha/beta with stand-pat score
+        if is_maximizing:
+            if stand_pat >= beta:
+                return beta  # Beta cutoff
+            alpha = max(alpha, stand_pat)
+        else:
+            if stand_pat <= alpha:
+                return alpha  # Alpha cutoff
+            beta = min(beta, stand_pat)
+        
+        # Current player
+        current_color = self._color if is_maximizing else self._color.opponent
+        
+        # Get only tactical moves (jumps and destination-reaching moves)
+        tactical_moves = self._get_tactical_moves(board, current_color)
+        
+        # If no tactical moves, return stand-pat score
+        if not tactical_moves:
+            return stand_pat
+        
+        # Search tactical moves
+        if is_maximizing:
+            max_eval = stand_pat
+            for move in tactical_moves:
+                # Apply move
+                new_board = self._apply_move(board, move, current_color)
+                
+                # Recursive call
+                eval = self._quiescence_search(new_board, alpha, beta, False, start_time, time_budget, q_depth + 1)
+                max_eval = max(max_eval, eval)
+                
+                # Alpha-beta pruning
+                alpha = max(alpha, max_eval)
+                if beta <= alpha:
+                    break
+                    
+            return max_eval
+        else:
+            min_eval = stand_pat
+            for move in tactical_moves:
+                # Apply move
+                new_board = self._apply_move(board, move, current_color)
+                
+                # Recursive call
+                eval = self._quiescence_search(new_board, alpha, beta, True, start_time, time_budget, q_depth + 1)
+                min_eval = min(min_eval, eval)
+                
+                # Alpha-beta pruning
+                beta = min(beta, min_eval)
+                if beta <= alpha:
+                    break
+                    
+            return min_eval
+
+    def _get_tactical_moves(self, board, color):
+        """Get only tactical moves (jumps and moves to destination row)."""
+        # Find active frogs
+        frogs = [coord for coord, state in board.items() if state == color]
+        active_frogs = [coord for coord in frogs if 
+                    (color == PlayerColor.RED and coord.r < 7) or 
+                    (color == PlayerColor.BLUE and coord.r > 0)]
+        
+        # Get legal directions
+        legal_directions = self._get_legal_directions(color)
+        forward_dirs = ([Direction.Down, Direction.DownLeft, Direction.DownRight] 
+                    if color == PlayerColor.RED else 
+                    [Direction.Up, Direction.UpLeft, Direction.UpRight])
+        
+        # Collect tactical moves
+        tactical_moves = []
+        
+        # 1. Get jump moves
+        for coord in active_frogs:
+            jumps = []
+            self._find_jumps_recursive(board, coord, coord, [], jumps, set(), color)
+            tactical_moves.extend(jumps)
+        
+        # 2. Get moves that reach destination row
+        destination_row = 7 if color == PlayerColor.RED else 0
+        for coord in active_frogs:
+            # Only consider frogs one row away from destination
+            if (color == PlayerColor.RED and coord.r == 6) or (color == PlayerColor.BLUE and coord.r == 1):
+                for direction in forward_dirs:
+                    try:
+                        dest = coord + direction
+                        if (self._is_valid_coord(dest) and 
+                            board.get(dest) == "LilyPad" and 
+                            dest.r == destination_row):
+                            tactical_moves.append(MoveAction(coord, (direction,)))
+                    except ValueError:
+                        pass
+        
+        # Sort jump moves by length (longer jumps first)
+        tactical_moves.sort(key=lambda move: 
+                        len(move.directions) if isinstance(move, MoveAction) else 0, 
+                        reverse=True)
+        
+        return tactical_moves
