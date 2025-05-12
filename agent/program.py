@@ -1,5 +1,7 @@
 # COMP30024 Artificial Intelligence, Semester 1 2025
 # Project Part B: Game Playing Agent
+# Author: Yongyou Yu
+#         Joey He
 
 from referee.game import PlayerColor, Coord, Direction, \
     Action, MoveAction, GrowAction
@@ -139,25 +141,15 @@ class Agent:
                 best_score = depth_best_score
                 max_depth_reached = current_depth
                 
-                # Print debug info
+
                 elapsed = time.time() - start_time
-                print(f"Depth {current_depth} COMPLETE in {elapsed:.3f}s, best: {best_score:.1f}, move: {best_move}")
             else:
                 elapsed = time.time() - start_time
-                print(f"Depth {current_depth} PARTIAL in {elapsed:.3f}s, best from prev: {best_score:.1f}")
                 break  # Stop iterating if we couldn't complete a depth
             
             # Early success check - if found winning move
             if best_score > 9000:
-                print(f"Found winning move at depth {current_depth}! Score: {best_score:.1f}")
                 break
-        
-        # Report final statistics
-        total_time = time.time() - start_time
-        print(f"TURN {self._move_count}: {self._color} chose {best_move}")
-        print(f"TIME: {total_time:.3f}s / {self._time_remaining:.1f}s remaining, MAX DEPTH: {max_depth_reached}")
-        print(f"SCORE: {best_score:.1f}, POSITIONS EVALUATED: {self._positions_evaluated}")
-        print(f"POSITIONS/SECOND: {self._positions_evaluated/max(total_time, 0.001):.1f}")
         
         return best_move
 
