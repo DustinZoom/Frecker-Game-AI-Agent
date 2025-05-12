@@ -5,7 +5,7 @@ In this project, we aim to develop an agent to play the full two-player version 
 
 python simple_tournament.py agent agent_naive 5
 python simple_tournament.py agent agenttest 10
-python simple_tournament.py agentminiv1 agenttest 15
+python simple_tournament.py agent_mcts agent 3
 
 Referee terminal command line:
 python -m referee agent agent
@@ -24,7 +24,7 @@ python -m referee agentminiv1 agenttest
 
 python -m referee agent agent_mcts
 python -m referee agent_mcts agent
-
+python -m referee agent_mcts agent_naive
 
 
 
