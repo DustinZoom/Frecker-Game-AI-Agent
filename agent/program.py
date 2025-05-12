@@ -25,8 +25,6 @@ class Agent:
         self._max_depth = 3
         self._move_count = 0
         
-         # Position counter - benchmarking only, delete when submit
-        self._positions_evaluated = 0
     def _init_board(self):
         """Initialize the board to the starting state."""
         # Initialize all positions to empty
@@ -76,7 +74,6 @@ class Agent:
         # Default to first available move in case we time out immediately
         best_move = all_moves[0] if all_moves else None
         best_score = float('-inf')
-        max_depth_reached = 0
         
         # Move ordering table - will be updated after each depth
         move_values = {move: 0 for move in all_moves}
@@ -102,9 +99,8 @@ class Agent:
             depth_beta = float('inf')
             
             # Search all moves at this depth
-            for move_idx, move in enumerate(all_moves):
+            for move in enumerate(all_moves):
                 # Time remaining for this depth
-                remaining_ratio = (len(all_moves) - move_idx) / len(all_moves)
                 move_time_limit = time_budget * 0.9 - elapsed  # How much time left
                 
                 # Allocate more time for higher depths
@@ -139,9 +135,7 @@ class Agent:
             if depth_completed and depth_best_move is not None:
                 best_move = depth_best_move
                 best_score = depth_best_score
-                max_depth_reached = current_depth
                 
-
                 elapsed = time.time() - start_time
             else:
                 elapsed = time.time() - start_time
@@ -438,7 +432,7 @@ class Agent:
                 visited.add(landing_key)
                 
                 # Create a modified board representation for the recursive call
-                temp_board = board.copy()  # Shallow copy is sufficient for the dictionary
+                temp_board = board.copy()  # Shallow copy 
                 temp_board[landing_pos] = color
                 temp_board[current_pos] = None
                 
